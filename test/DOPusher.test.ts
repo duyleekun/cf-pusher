@@ -21,7 +21,12 @@ describe("DOPusher", () => {
     expect(response.status).toBe(101);
 
     const ws = {
-      send: vitest.fn(),
+      send: vitest.fn().mockImplementation((message) => {
+        const parsedMessage = JSON.parse(message);
+        if (parsedMessage.event === 'pusher_internal:subscription_succeeded') {
+          expect(parsedMessage.channel).toBe('test-channel');
+        }
+      }),
       close: vitest.fn(),
       serializeAttachment: vitest.fn(),
       deserializeAttachment: () => ({ subscriptions: new Set() }),
@@ -36,5 +41,6 @@ describe("DOPusher", () => {
       event: "pusher_internal:subscription_succeeded",
       channel: "test-channel",
     }));
+    expect(ws.send).toHaveBeenCalledTimes(1);
   });
 });
