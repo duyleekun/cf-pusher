@@ -29,33 +29,23 @@ export class DOPusher extends DurableObject {
   }
 
   async fetch(request: Request): Promise<Response> {
-    // Creates two ends of a WebSocket connection.
-    const webSocketPair = new WebSocketPair();
-    const [client, server] = Object.values(webSocketPair);
-  
-    // Calling `accept()` tells the runtime that this WebSocket is to begin terminating
-    // request within the Durable Object. It has the effect of "accepting" the connection,
-    // and allowing the WebSocket to send and receive messages.
+    const url = new URL(request.url);
+    const path = url.pathname;
 
-    const socketId = this.#generateSocketId()
-    this.ctx.acceptWebSocket(server, [socketId])
-    this.currentlyConnectedWebSockets += 1;
-
-    this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('{"event":"pusher:ping","data":{}}','{"event":"pusher:pong"}'))
-    
-    server.serializeAttachment({subscriptions: new Set()} as WsAttachment)
-    server.send(JSON.stringify({
-        event: 'pusher:connection_established',
-        data: JSON.stringify({
-            socket_id: socketId,
-            activity_timeout: 120
-        })
-    }));
-
-    return new Response(null, {
-      status: 101,
-      webSocket: client,
-    });
+    if (request.method === 'POST') {
+      const text = await request.text();
+      await this.state.storage.put(path, text);
+      return new Response('The text was consumed!', { status: 200 });
+    } else if (request.method === 'GET') {
+      const text = await this.state.storage.get(path);
+      if (text) {
+        return new Response(text, { status: 200 });
+      } else {
+        return new Response('No text found', { status: 404 });
+      }
+    } else {
+      return new Response('Method not allowed', { status: 405 });
+    }
   }
 
 
