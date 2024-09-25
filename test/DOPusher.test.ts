@@ -1,5 +1,5 @@
 import { env, createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi as vitest } from "vitest";
 import { DOPusher } from "../src/DOPusher";
 
 describe("DOPusher", () => {
