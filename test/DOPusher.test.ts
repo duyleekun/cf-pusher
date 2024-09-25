@@ -6,11 +6,10 @@ describe("DOPusher", () => {
   it("should handle WebSocket connection and message", async () => {
     const state = {
       id: { toString: () => "test-id" },
-      getWebSockets: () => [],
-      acceptWebSocket: () => {},
-      setWebSocketAutoResponse: () => {},
-      getTags: () => ["test-client-id"],
-      getWebSockets: () => [],
+      getWebSockets: vitest.fn().mockReturnValue([]),
+      acceptWebSocket: vitest.fn(),
+      setWebSocketAutoResponse: vitest.fn(),
+      getTags: vitest.fn().mockReturnValue(["test-client-id"]),
     };
     const env = {};
     const dopusher = new DOPusher(state, env);
