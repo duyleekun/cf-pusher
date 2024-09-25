@@ -10,6 +10,16 @@ describe("DOPusher", () => {
       acceptWebSocket: vitest.fn(),
       setWebSocketAutoResponse: vitest.fn(),
       getTags: vitest.fn().mockReturnValue(["test-client-id"]),
+      // Add the following properties to correctly mock DurableObjectState
+      storage: {
+        get: vitest.fn(),
+        put: vitest.fn(),
+        delete: vitest.fn(),
+        list: vitest.fn(),
+      },
+      blockConcurrencyWhile: vitest.fn(),
+      waitUntil: vitest.fn(),
+      fetch: vitest.fn(),
     };
     const env = {};
     const dopusher = new DOPusher(state, env);
