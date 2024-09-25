@@ -1,41 +1,23 @@
 import { env, createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
-import { describe, it, expect, vi as vitest } from "vitest";
+import { describe, it, expect, vi as vitest, beforeAll, afterAll } from "vitest";
 import { DOPusher } from "../src/DOPusher";
+import { unstable_dev } from "wrangler";
 
 describe("DOPusher", () => {
-  it("should handle WebSocket connection and message", async () => {
-    const state = {
-      id: { toString: () => "test-id" },
-      getWebSockets: vitest.fn().mockReturnValue([]),
-      acceptWebSocket: vitest.fn(),
-      setWebSocketAutoResponse: vitest.fn(),
-      getTags: vitest.fn().mockReturnValue(["test-client-id"]),
-      storage: {
-        get: vitest.fn(),
-        put: vitest.fn(),
-        delete: vitest.fn(),
-        list: vitest.fn(),
-      },
-      blockConcurrencyWhile: vitest.fn(),
-      waitUntil: vitest.fn(),
-      fetch: vitest.fn(),
-      // Add the following properties to correctly mock DurableObjectState
-      get: vitest.fn(),
-      put: vitest.fn(),
-      delete: vitest.fn(),
-      list: vitest.fn(),
-      transaction: vitest.fn(),
-      sync: vitest.fn(),
-      getAlarm: vitest.fn(),
-      setAlarm: vitest.fn(),
-      deleteAlarm: vitest.fn(),
-      fetch: vitest.fn(),
-    };
-    const env = {};
-    const dopusher = new DOPusher(state, env);
+  let worker;
 
+  beforeAll(async () => {
+    worker = await unstable_dev("src/index.ts", {
+      experimental: { disableExperimentalWarning: true },
+    });
+  });
+
+  afterAll(async () => {
+    await worker.stop();
+  });
+  it("should handle WebSocket connection and message", async () => {
     const request = new Request("http://example.com");
-    const response = await dopusher.fetch(request);
+    const response = await worker.fetch(request);
 
     expect(response.status).toBe(101);
 
@@ -65,20 +47,11 @@ describe("DOPusher", () => {
 
   describe("fetch method", () => {
     it("should handle POST request and store text", async () => {
-      const state = {
-        storage: {
-          put: vitest.fn(),
-          get: vitest.fn().mockResolvedValue(null),
-        },
-      };
-      const env = {};
-      const dopusher = new DOPusher(state, env);
-
       const request = new Request("http://example.com/test", {
         method: "POST",
         body: "Hello World",
       });
-      const response = await dopusher.fetch(request);
+      const response = await worker.fetch(request);
 
       expect(response.status).toBe(200);
       expect(await response.text()).toBe("The text was consumed!");
@@ -86,57 +59,30 @@ describe("DOPusher", () => {
     });
 
     it("should handle GET request and retrieve stored text", async () => {
-      const state = {
-        storage: {
-          put: vitest.fn(),
-          get: vitest.fn().mockResolvedValue("Hello World"),
-        },
-      };
-      const env = {};
-      const dopusher = new DOPusher(state, env);
-
       const request = new Request("http://example.com/test", {
         method: "GET",
       });
-      const response = await dopusher.fetch(request);
+      const response = await worker.fetch(request);
 
       expect(response.status).toBe(200);
       expect(await response.text()).toBe("Hello World");
     });
 
     it("should return 404 for GET request if no text is found", async () => {
-      const state = {
-        storage: {
-          put: vitest.fn(),
-          get: vitest.fn().mockResolvedValue(null),
-        },
-      };
-      const env = {};
-      const dopusher = new DOPusher(state, env);
-
       const request = new Request("http://example.com/test", {
         method: "GET",
       });
-      const response = await dopusher.fetch(request);
+      const response = await worker.fetch(request);
 
       expect(response.status).toBe(404);
       expect(await response.text()).toBe("No text found");
     });
 
     it("should return 405 for unsupported methods", async () => {
-      const state = {
-        storage: {
-          put: vitest.fn(),
-          get: vitest.fn().mockResolvedValue(null),
-        },
-      };
-      const env = {};
-      const dopusher = new DOPusher(state, env);
-
       const request = new Request("http://example.com/test", {
         method: "PUT",
       });
-      const response = await dopusher.fetch(request);
+      const response = await worker.fetch(request);
 
       expect(response.status).toBe(405);
       expect(await response.text()).toBe("Method not allowed");
