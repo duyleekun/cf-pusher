@@ -2,8 +2,10 @@
   "name": "cf-pusher",
   "version": "0.0.0",
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.5.8",
     "@cloudflare/workers-types": "^4.20240614.0",
     "typescript": "^5.4.5",
+    "vitest": "^2.1.1",
     "wrangler": "3.61.0"
   },
   "private": true,
